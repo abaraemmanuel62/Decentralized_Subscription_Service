@@ -29,3 +29,23 @@
     metadata: (optional (string-utf8 256))
   }
 )
+
+
+(define-map provider-subscriptions
+  { provider: principal }
+  { subscription-ids: (list 100 uint) }
+)
+
+(define-map subscriber-subscriptions
+  { subscriber: principal }
+  { subscription-ids: (list 100 uint) }
+)
+
+;; Provider revenue tracking
+(define-map provider-revenue
+  { provider: principal }
+  { total: uint, pending-withdrawal: uint }
+)
+
+;; Counter for subscription IDs
+(define-data-var subscription-id-counter uint u0)
