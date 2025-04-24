@@ -104,3 +104,19 @@
         { subscription-ids: (list next-id) })
     )
   ))
+
+  ;; Make first payment
+    (try! (stx-transfer? amount tx-sender provider))
+    
+    ;; Update provider revenue
+    (match (map-get? provider-revenue { provider: provider })
+      existing-revenue (map-set provider-revenue
+                         { provider: provider }
+                         { 
+                           total: (+ (get total existing-revenue) amount),
+                           pending-withdrawal: (+ (get pending-withdrawal existing-revenue) amount)
+                         })
+      (map-set provider-revenue
+        { provider: provider }
+        { total: amount, pending-withdrawal: amount })
+    )
