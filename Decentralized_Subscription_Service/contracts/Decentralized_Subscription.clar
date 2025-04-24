@@ -276,3 +276,25 @@
 )
 
 
+;; Provider withdraws earnings
+(define-public (withdraw-earnings)
+  (let
+    (
+      (revenue-data (unwrap! (map-get? provider-revenue { provider: tx-sender }) (err-insufficient-balance)))
+      (pending-amount (get pending-withdrawal revenue-data))
+    )
+    ;; Check if there are funds to withdraw
+    (asserts! (> pending-amount u0) (err-insufficient-balance))
+    
+    ;; Update pending withdrawal amount
+    (map-set provider-revenue
+      { provider: tx-sender }
+      (merge revenue-data { pending-withdrawal: u0 })
+    )
+    
+    ;; Return success
+    (ok pending-amount)
+  )
+)
+
+
