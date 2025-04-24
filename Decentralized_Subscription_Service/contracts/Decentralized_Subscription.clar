@@ -312,3 +312,19 @@
   )
 )
 
+;; Batch process multiple subscriptions
+(define-public (batch-process-payments (subscription-ids (list 20 uint)))
+  (let
+    ((processed-count (fold process-subscription u0 subscription-ids)))
+    (ok processed-count)
+  )
+)
+
+;; Helper function for batch processing
+(define-private (process-subscription (subscription-id uint) (processed uint))
+  (match (process-payment subscription-id)
+    success (+ processed u1)
+    error processed
+  )
+)
+
