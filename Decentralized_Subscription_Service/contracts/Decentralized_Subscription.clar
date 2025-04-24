@@ -233,3 +233,46 @@
   )
 )
 
+;; Toggle auto-renew setting (only subscriber can do this)
+(define-public (toggle-auto-renew (subscription-id uint))
+  (let
+    (
+      (subscription (unwrap! (map-get? subscriptions { subscription-id: subscription-id }) (err-invalid-subscription)))
+    )
+    ;; Check if caller is the subscriber
+    (asserts! (is-eq tx-sender (get subscriber subscription)) (err-not-authorized))
+    
+    ;; Check if subscription is active
+    (asserts! (is-eq (get status subscription) "active") (err-subscription-expired))
+    
+    ;; Toggle auto-renew
+    (map-set subscriptions
+      { subscription-id: subscription-id }
+      (merge subscription { auto-renew: (not (get auto-renew subscription)) })
+    )
+    
+    (ok true)
+  )
+)
+
+;; Get subscription details
+(define-read-only (get-subscription (subscription-id uint))
+  (map-get? subscriptions { subscription-id: subscription-id })
+)
+
+;; Get provider subscriptions
+(define-read-only (get-provider-subscriptions (provider principal))
+  (map-get? provider-subscriptions { provider: provider })
+)
+
+;; Get subscriber subscriptions
+(define-read-only (get-subscriber-subscriptions (subscriber principal))
+  (map-get? subscriber-subscriptions { subscriber: subscriber })
+)
+
+;; Get provider revenue info
+(define-read-only (get-provider-revenue (provider principal))
+  (map-get? provider-revenue { provider: provider })
+)
+
+
