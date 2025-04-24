@@ -298,3 +298,17 @@
 )
 
 
+;; Function to check if subscriptions need renewal
+(define-read-only (check-subscription-status (subscription-id uint))
+  (let
+    (
+      (subscription (unwrap! (map-get? subscriptions { subscription-id: subscription-id }) (err-invalid-subscription)))
+      (current-block-height block-height)
+    )
+    (if (<= (get next-billing subscription) current-block-height)
+      (ok "payment-due")
+      (ok "active")
+    )
+  )
+)
+
