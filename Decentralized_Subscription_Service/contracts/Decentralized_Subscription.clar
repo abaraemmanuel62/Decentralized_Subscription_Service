@@ -158,3 +158,53 @@
     (ok true)
   )
 )
+
+;; Cancel a subscription
+(define-public (cancel-subscription (subscription-id uint))
+  (let
+    (
+      (subscription (unwrap! (map-get? subscriptions { subscription-id: subscription-id }) (err-invalid-subscription)))
+    )
+    ;; Check if caller is the subscriber
+    (asserts! (or (is-eq tx-sender (get subscriber subscription))
+                 (is-eq tx-sender (get provider subscription)))
+             (err-not-authorized))
+    
+    ;; Check if subscription is active
+    (asserts! (is-eq (get status subscription) "active") (err-subscription-expired))
+    
+    ;; Update subscription status
+    (map-set subscriptions
+      { subscription-id: subscription-id }
+      (merge subscription { status: "cancelled" })
+    )
+    
+    (ok true)
+  )
+)
+
+;; Update subscription amount (only provider can do this)
+(define-public (update-subscription-amount (subscription-id uint) (new-amount uint))
+  (let
+    (
+      (subscription (unwrap! (map-get? subscriptions { subscription-id: subscription-id }) (err-invalid-subscription)))
+    )
+    ;; Check if caller is the provider
+    (asserts! (is-eq tx-sender (get provider subscription)) (err-not-authorized))
+    
+    ;; Check if subscription is active
+    (asserts! (is-eq (get status subscription) "active") (err-subscription-expired))
+    
+    ;; Validate new amount
+    (asserts! (> new-amount u0) (err-invalid-amount))
+    
+    ;; Update subscription amount
+    (map-set subscriptions
+      { subscription-id: subscription-id }
+      (merge subscription { amount: new-amount })
+    )
+    
+    (ok true)
+  )
+)
+
