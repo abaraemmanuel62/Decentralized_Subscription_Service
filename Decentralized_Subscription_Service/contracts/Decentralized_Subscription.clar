@@ -120,3 +120,41 @@
         { provider: provider }
         { total: amount, pending-withdrawal: amount })
     )
+
+;; Execute payment for a subscription
+(define-public (process-payment (subscription-id uint))
+  (let
+    (
+      (subscription (unwrap! (map-get? subscriptions { subscription-id: subscription-id }) (err-invalid-subscription)))
+      (current-block-height block-height)
+    )
+    ;; Check if payment is due
+    (asserts! (<= (get next-billing subscription) current-block-height) (ok false))
+    ;; Check if subscription is active
+    (asserts! (is-eq (get status subscription) "active") (err-subscription-expired))
+    
+    ;; Process payment
+    (try! (stx-transfer? (get amount subscription) (get subscriber subscription) (get provider subscription)))
+    
+    ;; Update provider revenue
+    (match (map-get? provider-revenue { provider: (get provider subscription) })
+      existing-revenue (map-set provider-revenue
+                         { provider: (get provider subscription) }
+                         { 
+                           total: (+ (get total existing-revenue) (get amount subscription)),
+                           pending-withdrawal: (+ (get pending-withdrawal existing-revenue) (get amount subscription))
+                         })
+      (map-set provider-revenue
+        { provider: (get provider subscription) }
+        { total: (get amount subscription), pending-withdrawal: (get amount subscription) })
+    )
+    
+    ;; Update next billing cycle
+    (map-set subscriptions
+      { subscription-id: subscription-id }
+      (merge subscription { next-billing: (+ current-block-height (get period subscription)) })
+    )
+    
+    (ok true)
+  )
+)
