@@ -208,3 +208,28 @@
   )
 )
 
+;; Update subscription period (only provider can do this)
+(define-public (update-subscription-period (subscription-id uint) (new-period uint))
+  (let
+    (
+      (subscription (unwrap! (map-get? subscriptions { subscription-id: subscription-id }) (err-invalid-subscription)))
+    )
+    ;; Check if caller is the provider
+    (asserts! (is-eq tx-sender (get provider subscription)) (err-not-authorized))
+    
+    ;; Check if subscription is active
+    (asserts! (is-eq (get status subscription) "active") (err-subscription-expired))
+    
+    ;; Validate new period
+    (asserts! (> new-period u0) (err-invalid-period))
+    
+    ;; Update subscription period
+    (map-set subscriptions
+      { subscription-id: subscription-id }
+      (merge subscription { period: new-period })
+    )
+    
+    (ok true)
+  )
+)
+
