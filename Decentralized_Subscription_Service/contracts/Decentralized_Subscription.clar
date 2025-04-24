@@ -49,3 +49,58 @@
 
 ;; Counter for subscription IDs
 (define-data-var subscription-id-counter uint u0)
+
+
+
+;; Create a new subscription
+(define-public (create-subscription 
+                (provider principal)
+                (amount uint)
+                (period uint)
+                (auto-renew bool)
+                (metadata (optional (string-utf8 256))))
+  (let
+    (
+      (next-id (+ (var-get subscription-id-counter) u1))
+      (current-block-height block-height)
+      (next-billing (+ current-block-height period))
+    )
+    ;; Validate inputs
+    (asserts! (> amount u0) (err-invalid-amount))
+    (asserts! (> period u0) (err-invalid-period))
+    
+    ;; Create subscription
+    (map-set subscriptions
+      { subscription-id: next-id }
+      {
+        provider: provider,
+        subscriber: tx-sender,
+        amount: amount,
+        period: period,
+        next-billing: next-billing,
+        auto-renew: auto-renew,
+        status: "active",
+        metadata: metadata
+      }
+    )
+    
+    ;; Update provider subscriptions list
+    (match (map-get? provider-subscriptions { provider: provider })
+      existing-data (map-set provider-subscriptions
+                      { provider: provider }
+                      { subscription-ids: (append (get subscription-ids existing-data) next-id) })
+      (map-set provider-subscriptions
+        { provider: provider }
+        { subscription-ids: (list next-id) })
+    )
+    
+    ;; Update subscriber subscriptions list
+    (match (map-get? subscriber-subscriptions { subscriber: tx-sender })
+      existing-data (map-set subscriber-subscriptions
+                      { subscriber: tx-sender }
+                      { subscription-ids: (append (get subscription-ids existing-data) next-id) })
+      (map-set subscriber-subscriptions
+        { subscriber: tx-sender }
+        { subscription-ids: (list next-id) })
+    )
+  ))
